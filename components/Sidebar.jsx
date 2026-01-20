@@ -37,6 +37,9 @@ export default function Sidebar({ children }) {
   const [addingEvent, setAddingEvent] = useState(false);
   const [addingGroup, setAddingGroup] = useState(false);
 
+  const addEventRef = useRef(null);
+  const addGroupRef = useRef(null);
+
   const [newEventName, setNewEventName] = useState("");
   const [newGroupName, setNewGroupName] = useState("");
 
@@ -50,7 +53,7 @@ export default function Sidebar({ children }) {
 
   const menuRef = useRef(null);
 
-  /* ================= FETCH EVENTS ================= */
+  /* FETCH EVENTS */
   useEffect(() => {
     fetch("/api/events")
       .then((res) => {
@@ -61,7 +64,7 @@ export default function Sidebar({ children }) {
       .catch(console.error);
   }, []);
 
-  /* ================= FETCH GROUPS ================= */
+  /* FETCH GROUPS */
   const loadGroups = async (eventId) => {
     try {
       const res = await fetch(`/api/events/${eventId}/groups`);
@@ -74,46 +77,72 @@ export default function Sidebar({ children }) {
     }
   };
 
-  /* ================= SYNC EVENT FROM URL ================= */
-useEffect(() => {
-  if (!events.length) return;
+  /* SYNC EVENT FROM URL */
+  useEffect(() => {
+    if (!events.length) return;
 
-  const parts = pathname.split("/");
-  // /dashboard/[eventSlug]/[groupSlug]
-  const eventSlug = parts[2];
+    const parts = pathname.split("/");
+    const eventSlug = parts[2];
 
-  if (!eventSlug) return;
+    if (!eventSlug) return;
 
-  const foundEvent = events.find(
-    (ev) => ev.slug === eventSlug
-  );
+    const foundEvent = events.find(
+      (ev) => ev.slug === eventSlug
+    );
 
-  if (foundEvent) {
-    setSelectedEvent(foundEvent);
-    loadGroups(foundEvent._id);
-    setOpenGroups(true);
-  }
-}, [events, pathname]);
+    if (foundEvent) {
+      setSelectedEvent(foundEvent);
+      loadGroups(foundEvent._id);
+      setOpenGroups(true);
+    }
+  }, [events, pathname]);
 
-/* ================= SYNC GROUP FROM URL ================= */
-useEffect(() => {
-  if (!groups.length) return;
+  /* SYNC GROUP FROM URL */
+  useEffect(() => {
+    if (!groups.length) return;
 
-  const parts = pathname.split("/");
-  const groupSlug = parts[3];
+    const parts = pathname.split("/");
+    const groupSlug = parts[3];
 
-  if (!groupSlug) return;
+    if (!groupSlug) return;
 
-  const foundGroup = groups.find(
-    (g) => g.slug === groupSlug
-  );
+    const foundGroup = groups.find(
+      (g) => g.slug === groupSlug
+    );
 
-  if (foundGroup) {
-    setSelectedGroup(foundGroup);
-  }
-}, [groups, pathname]);
+    if (foundGroup) {
+      setSelectedGroup(foundGroup);
+    }
+  }, [groups, pathname]);
 
-  /* ================= CLICK OUTSIDE ================= */
+  /* CLICK OUTSIDE ADD EVENT / GROUP */
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        addingEvent &&
+        addEventRef.current &&
+        !addEventRef.current.contains(e.target)
+      ) {
+        setAddingEvent(false);
+        setNewEventName("");
+      }
+
+      if (
+        addingGroup &&
+        addGroupRef.current &&
+        !addGroupRef.current.contains(e.target)
+      ) {
+        setAddingGroup(false);
+        setNewGroupName("");
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
+  }, [addingEvent, addingGroup]);
+
+  /* CLICK OUTSIDE */
   useEffect(() => {
     const handler = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -136,14 +165,12 @@ useEffect(() => {
 
   return (
     <div className="grid grid-cols-[18rem_1fr] min-h-screen">
-      {/* ================= SIDEBAR ================= */}
       <aside className="bg-[#1E282C] text-gray-300 flex flex-col justify-between">
         <div>
           <h1 className="text-center text-white font-bold text-xl py-5">
             RT <span className="font-light">Admin</span>
           </h1>
 
-          {/* ===== DASHBOARD ===== */}
           <div
             onClick={() => {
               router.push("/dashboard");
@@ -160,7 +187,7 @@ useEffect(() => {
             <FiGrid /> Dashboard
           </div>
 
-          {/* ===== EVENTS ===== */}
+          {/* EVENTS */}
           <div className="mt-4">
             <div
               onClick={() => setOpenEvents(!openEvents)}
@@ -182,9 +209,9 @@ useEffect(() => {
 
             {openEvents && (
               <div className="ml-4 mt-1 space-y-1">
-                {/* ADD EVENT */}
                 {addingEvent && (
                   <input
+                    ref={addEventRef}
                     autoFocus
                     value={newEventName}
                     onChange={(e) => setNewEventName(e.target.value)}
@@ -208,10 +235,16 @@ useEffect(() => {
                         setAddingEvent(false);
                         setNewEventName("");
                       }
+
+                      if (e.key === "Escape") {
+                        setAddingEvent(false);
+                        setNewEventName("");
+                      }
                     }}
                     className="w-[95%] bg-[#2C3B41] px-3 py-2 mt-2 mb-2 rounded"
                   />
                 )}
+
 
                 {/* EVENT LIST */}
                 {events.map((event) => (
@@ -318,7 +351,7 @@ useEffect(() => {
             )}
           </div>
 
-          {/* ===== GROUPS ===== */}
+          {/* GROUPS */}
           {selectedEvent && (
             <div className="mt-4">
               <div
@@ -339,11 +372,10 @@ useEffect(() => {
                 <div className="ml-4 mt-1 space-y-1">
                   {addingGroup && (
                     <input
+                      ref={addGroupRef}
                       autoFocus
                       value={newGroupName}
-                      onChange={(e) =>
-                        setNewGroupName(e.target.value)
-                      }
+                      onChange={(e) => setNewGroupName(e.target.value)}
                       onKeyDown={async (e) => {
                         if (e.key === "Enter" && newGroupName.trim()) {
                           const res = await fetch(
@@ -367,8 +399,13 @@ useEffect(() => {
                           setAddingGroup(false);
                           setNewGroupName("");
                         }
+
+                        if (e.key === "Escape") {
+                          setAddingGroup(false);
+                          setNewGroupName("");
+                        }
                       }}
-                      className="w-[80%] bg-[#2C3B41] px-3 py-2 rounded"
+                      className="w-[95%] bg-[#2C3B41] px-3 py-2 mt-2 mb-2 roundedd"
                     />
                   )}
 
@@ -376,8 +413,8 @@ useEffect(() => {
                     <div
                       key={group._id}
                       className={`${menuBase} ${selectedGroup?._id === group._id
-                          ? activeStyle
-                          : hoverStyle
+                        ? activeStyle
+                        : hoverStyle
                         }`}
                       onClick={() => {
                         setSelectedGroup(group); // ⭐ เพิ่ม
@@ -386,15 +423,15 @@ useEffect(() => {
                         );
                       }}
                     >
-                      {/* ===== ACTIVE INDICATOR (แทบซ้าย) ===== */}
+                      {/* ACTIVE INDICATOR */}
                       <span
                         className={`${indicator} ${selectedGroup?._id === group._id
-                            ? "opacity-100"
-                            : "opacity-0"
+                          ? "opacity-100"
+                          : "opacity-0"
                           }`}
                       />
 
-                      {/* ===== GROUP NAME / RENAME INPUT ===== */}
+                      {/* RENAME INPUT */}
                       {renamingGroup === group._id ? (
                         <input
                           autoFocus
@@ -430,7 +467,7 @@ useEffect(() => {
                         <span className="flex-1">{group.name}</span>
                       )}
 
-                      {/* ===== MORE ICON ===== */}
+                      {/* MORE ICON */}
                       <FiMoreVertical
                         onClick={(e) => {
                           e.stopPropagation();
@@ -438,7 +475,7 @@ useEffect(() => {
                         }}
                       />
 
-                      {/* ===== GROUP MENU ===== */}
+                      {/* GROUP MENU */}
                       {openGroupMenu === group._id && (
                         <div className="absolute right-2 top-9 bg-[#2C3B41] rounded shadow z-50">
                           <div
@@ -472,15 +509,12 @@ useEffect(() => {
                       )}
                     </div>
                   ))}
-
-
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* ===== LOGOUT ===== */}
         <button
           onClick={() => signOut({ callbackUrl: "/" })}
           className="m-4 flex items-center justify-center gap-2 bg-[#005BA9] text-white rounded-lg py-2"
