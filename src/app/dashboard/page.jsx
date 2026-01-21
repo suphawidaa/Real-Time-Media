@@ -29,7 +29,6 @@ export default function DashboardPage() {
       .catch(console.error);
   }, [selectedEvent]);
 
-  // stats
   const stats = [
     {
       title: "Event",
@@ -52,15 +51,16 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="w-full p-6">
+    <div className="w-full p-6 animate-fade-in">
       <h1 className="text-2xl font-semibold mb-6">Dashboard</h1>
 
-      {/* STATS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         {stats.map((item, idx) => (
           <div
             key={idx}
-            className={`flex items-center gap-4 p-4 rounded-lg shadow text-white ${item.bg}`}
+            className={`flex items-center gap-4 p-4 rounded-lg shadow text-white ${item.bg}
+            transition-all duration-300
+            hover:-translate-y-1 hover:shadow-lg`}
           >
             <div className="p-3 bg-white text-black rounded-lg shadow">
               {item.icon}
@@ -73,24 +73,23 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* EVENTS */}
       <div className="mb-6 flex gap-3">
         {events.map((event) => (
           <button
             key={event._id}
             onClick={() => setSelectedEvent(event)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-              selectedEvent?._id === event._id
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                hover:-translate-y-0.5 hover:shadow 
+                ${selectedEvent?._id === event._id
                 ? "bg-blue-600 text-white"
                 : "bg-gray-200 hover:bg-gray-300"
-            }`}
+              }`}
           >
             {event.name}
           </button>
         ))}
       </div>
 
-      {/* GROUPS */}
       {selectedEvent && (
         <>
           <h2 className="text-lg font-semibold mb-4">{selectedEvent.name}</h2>
@@ -98,7 +97,7 @@ export default function DashboardPage() {
             {groups.map((group) => (
               <div
                 key={group._id}
-                className="bg-blue-50 rounded-xl p-6 shadow-sm"
+                className="bg-blue-50 rounded-xl p-6 shadow-sm transition"
               >
                 <div className="flex justify-between mb-3">
                   <h3 className="font-semibold">{group.name}</h3>
@@ -112,13 +111,15 @@ export default function DashboardPage() {
                   <div className="flex-1 truncate text-sm text-blue-600">
                     {group.link}
                   </div>
-                  <a
+                  <button
                     href={group.link}
                     target="_blank"
-                    className="flex items-center gap-1 bg-blue-500 text-white text-sm px-3 py-1 rounded-full"
+                    className="flex items-center gap-1 bg-blue-500 text-white text-sm px-3 py-1 rounded-full
+                    transition-transform duration-200
+                    hover:scale-105"
                   >
                     <FaExternalLinkAlt /> Open
-                  </a>
+                  </button>
                 </div>
               </div>
             ))}
