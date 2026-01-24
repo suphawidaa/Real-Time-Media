@@ -57,7 +57,7 @@ export default function DisplayPage() {
       <div
         className={`
           relative w-full h-full
-          transition-opacity duration-700 ease-in-out
+          transition-opacity duration-700 ease-in-out 
           ${showImage ? "opacity-100" : "opacity-0"}
         `}
       >
