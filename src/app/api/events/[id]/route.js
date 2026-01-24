@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import { connectMongoDB } from "../../../../../models/mongodb";
 import Event from "../../../../../lib/Event";
 
-/* ===== UPDATE EVENT ===== */
+/*  UPDATE EVENT */
 export async function PATCH(req, context) {
   await connectMongoDB();
 
-  const { id } = await context.params; // ✅ สำคัญมาก
+  const { id } = await context.params;
   const { name, slug } = await req.json();
 
   if (!id) {
@@ -25,7 +25,7 @@ export async function PATCH(req, context) {
   return NextResponse.json(event);
 }
 
-/* ===== DELETE EVENT (SOFT DELETE) ===== */
+/* DELETE EVENT */
 export async function DELETE(req, context) {
   await connectMongoDB();
 

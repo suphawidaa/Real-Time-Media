@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { FaCalendarAlt, FaFolder, FaImage, FaExternalLinkAlt } from "react-icons/fa";
+import Link from "next/link";
 
 export default function DashboardPage() {
   const [events, setEvents] = useState([]);
@@ -111,15 +112,13 @@ export default function DashboardPage() {
                   <div className="flex-1 truncate text-sm text-blue-600">
                     {group.link}
                   </div>
-                  <button
-                    href={group.link}
-                    target="_blank"
-                    className="flex items-center gap-1 bg-blue-500 text-white text-sm px-3 py-1 rounded-full
-                    transition-transform duration-200
-                    hover:scale-105"
+                  <Link
+                    href={`/dashboard/${selectedEvent.slug}/${group.slug}/display`}
+                    
+                    className="flex items-center gap-1 bg-blue-500 text-white text-sm px-3 py-1 rounded-full hover:scale-105"
                   >
                     <FaExternalLinkAlt /> Open
-                  </button>
+                  </Link>
                 </div>
               </div>
             ))}
