@@ -29,7 +29,7 @@ export async function PATCH(req, { params }) {
     );
   }
 
-  /* ---------- เปลี่ยนรูป ---------- */
+  /* เปลี่ยนรูป */
   if (file) {
     // ลบรูปเก่าจาก cloudinary
     if (image.cloudinaryId) {
@@ -48,7 +48,7 @@ export async function PATCH(req, { params }) {
     image.url = result.secure_url;
   }
 
-  /* ---------- แก้ duration ---------- */
+  /* แก้ duration */
   if (duration) {
     image.duration = Number(duration);
   }
