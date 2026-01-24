@@ -8,7 +8,7 @@ import Group from "../../../../../../lib/Group";
 export async function GET(req, { params }) {
   await connectMongoDB();
 
-  const { id: slug } = await params; // ✅ id = slug
+  const { id: slug } = await params;
 
   const group = await Group.findOne({ slug });
   if (!group) {
@@ -23,7 +23,6 @@ export async function GET(req, { params }) {
   return NextResponse.json(images);
 }
 
-/* ================= POST ================= */
 export async function POST(req, { params }) {
   await connectMongoDB();
 
@@ -50,15 +49,13 @@ export async function POST(req, { params }) {
       const result = await new Promise((resolve, reject) => {
         cloudinary.uploader.upload_stream(
           {
-            folder: `groups/${slug}`,
 
-            // ⭐ สำคัญมาก
             transformation: [
               {
-                width: 1920,        // เหมาะกับ TV
-                crop: "limit",      // ไม่ขยายรูปเล็ก
-                quality: "auto",    // Cloudinary เลือกให้ดีที่สุด
-                fetch_format: "auto", // webp / jpg อัตโนมัติ
+                width: 1920,
+                crop: "limit",
+                quality: "auto", 
+                fetch_format: "auto",
               },
             ],
           },
