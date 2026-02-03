@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import { FiX } from "react-icons/fi";
-import Image from "next/image";
 
 export default function UploadPopup({ isOpen, onClose, onUpload }) {
   const [files, setFiles] = useState([]);
@@ -57,8 +56,12 @@ export default function UploadPopup({ isOpen, onClose, onUpload }) {
     });
 
   const handleRemoveFile = (id) => {
-    setFiles((prev) => prev.filter((f) => f.id !== id));
-  };
+  setFiles((prev) => {
+    const file = prev.find((f) => f.id === id);
+    if (file) URL.revokeObjectURL(file.preview);
+    return prev.filter((f) => f.id !== id);
+  });
+};
 
   const handleUpload = async () => {
     if (loading) return;
