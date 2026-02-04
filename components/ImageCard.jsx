@@ -9,8 +9,12 @@ export default function ImageCard({ img, onDelete, onUpdate }) {
   const [editFile, setEditFile] = useState(null);
   const [editPreview, setEditPreview] = useState(null);
   const [editDuration, setEditDuration] = useState(img.duration);
-
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  
   const handleSave = async () => {
+    setSaving(true);
+
     const fd = new FormData();
     if (editFile) fd.append("file", editFile);
     fd.append("duration", editDuration);
@@ -28,17 +32,29 @@ export default function ImageCard({ img, onDelete, onUpdate }) {
       setEditFile(null);
       setEditPreview(null);
     }
+    setSaving(false);
   };
 
   return (
     <div className="bg-white rounded-xl shadow p-4">
-      <div className="rounded overflow-hidden bg-black">
+      <div className="relative bg-white flex justify-center">
+        {!loaded && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-transparent" />
+          </div>
+        )}
+
         <Image
           src={editPreview || img.url}
           alt=""
           width={600}
           height={600}
-          className="w-full h-auto object-contain"
+          className={`
+      object-contain
+      transition-opacity duration-500 ease-out
+      ${loaded ? "opacity-100" : "opacity-0"}
+    `}
+          onLoad={() => setLoaded(true)}
         />
       </div>
 
@@ -81,10 +97,9 @@ export default function ImageCard({ img, onDelete, onUpdate }) {
         className={`
           mt-4 rounded-2xl border-2 border-dashed border-gray-300 p-5 space-y-5
           transition-all duration-300 ease-out
-          ${
-            editing
-              ? "opacity-100 translate-y-0 max-h-[500]"
-              : "opacity-0 -translate-y-3 max-h-0 overflow-hidden pointer-events-none"
+          ${editing
+            ? "opacity-100 translate-y-0 max-h-[500]"
+            : "opacity-0 -translate-y-3 max-h-0 overflow-hidden pointer-events-none"
           }
         `}
       >
@@ -137,10 +152,16 @@ export default function ImageCard({ img, onDelete, onUpdate }) {
 
           <button
             onClick={handleSave}
-            className="w-1/2 rounded-xl bg-[#001D75] py-2 text-sm text-white hover:bg-blue-800 transition"
+            disabled={saving}
+            className={`
+                w-1/2 rounded-xl py-2 text-sm text-white transition
+                ${saving
+                ? "bg-gray-600 cursor-not-allowed"
+                : "bg-[#001D75] hover:bg-blue-800"}`}
           >
-            Save change
+            {saving ? "Saving..." : "Save change"}
           </button>
+
         </div>
       </div>
     </div>
