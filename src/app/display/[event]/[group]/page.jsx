@@ -41,44 +41,55 @@ export default function DisplayPage() {
 
   /* socket realtime */
   useEffect(() => {
-    if (!groupId) return;
+  if (!groupId) return;
 
-    const socket = io(SOCKET_URL, { transports: ["websocket"] });
-    socketRef.current = socket;
+  if (socketRef.current) {
+    socketRef.current.emit("join-group", groupId);
+    return;
+  }
 
-    socket.on("connect", () => {
-      socket.emit("join-group", groupId);
+  const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL, {
+    transports: ["websocket"],
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000,
+  });
+
+  socketRef.current = socket;
+
+  socket.on("connect", () => {
+    console.log("socket connected:", socket.id);
+    socket.emit("join-group", groupId);
+  });
+
+  socket.on("new-image", (img) => {
+    setImages((prev) => [...prev, img]);
+  });
+
+  socket.on("delete-image", (imageId) => {
+    setImages((prev) => {
+      const next = prev.filter((img) => img._id !== imageId);
+      setIndex((i) => (next.length ? i % next.length : 0));
+      return next;
     });
+  });
 
-    socket.on("new-image", (img) => {
-      setImages((prev) => [...prev, img]);
-    });
+  socket.on("update-image", (updated) => {
+    setImages((prev) =>
+      prev.map((img) =>
+        img._id === updated._id ? { ...img, ...updated } : img
+      )
+    );
+    setReady(false);
+  });
 
-    socket.on("delete-image", (imageId) => {
-      setImages((prev) => {
-        const next = prev.filter((img) => img._id !== imageId);
-        setIndex((i) => (next.length ? i % next.length : 0));
-        return next;
-      });
-    });
+  socket.on("update-duration", (duration) => {
+    setImages((prev) =>
+      prev.map((img) => ({ ...img, duration }))
+    );
+  });
 
-    socket.on("update-image", (updated) => {
-      setImages((prev) =>
-        prev.map((img) =>
-          img._id === updated._id ? { ...img, ...updated } : img
-        )
-      );
-      setReady(false);
-    });
-
-    socket.on("update-duration", (duration) => {
-      setImages((prev) =>
-        prev.map((img) => ({ ...img, duration }))
-      );
-    });
-
-    return () => socket.disconnect();
-  }, [groupId]);
+}, [groupId]);
 
   /* slideshow */
   useEffect(() => {
