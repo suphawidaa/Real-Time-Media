@@ -102,23 +102,21 @@ export default function DashboardPage() {
               >
                 <div className="flex justify-between mb-3">
                   <h3 className="font-semibold">{group.name}</h3>
-                  <span className="text-sm text-gray-500">
-                    {group.imageCount} images
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">Link URL :</span>
-                  <div className="flex-1 truncate text-sm text-blue-600">
-                    {group.link}
-                  </div>
                   <Link
-                    href={`/dashboard/${selectedEvent.slug}/${group.slug}/display`}
+                    href={`/display/${selectedEvent.slug}/${group.slug}`}
                     
                     className="flex items-center gap-1 bg-blue-500 text-white text-sm px-3 py-1 rounded-full hover:scale-105"
                   >
                     <FaExternalLinkAlt /> Open
                   </Link>
+                  
+                </div>
+
+                <div className="flex items-center gap-2">
+
+                  <span className="text-sm text-gray-500">
+                    {group.imageCount} images
+                  </span>
                 </div>
               </div>
             ))}
