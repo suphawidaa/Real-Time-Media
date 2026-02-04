@@ -52,6 +52,7 @@ export default function Sidebar({ children }) {
   const [renameGroupText, setRenameGroupText] = useState("");
 
   const menuRef = useRef(null);
+  const groupMenuRef = useRef(null);
 
   /* FETCH EVENTS */
   useEffect(() => {
@@ -145,11 +146,19 @@ export default function Sidebar({ children }) {
   /* CLICK OUTSIDE */
   useEffect(() => {
     const handler = (e) => {
+      // EVENT
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setOpenMenu(null);
         setRenaming(null);
       }
+
+      // GROUP
+      if (groupMenuRef.current && !groupMenuRef.current.contains(e.target)) {
+        setOpenGroupMenu(null);
+        setRenamingGroup(null);
+      }
     };
+
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
@@ -405,7 +414,7 @@ export default function Sidebar({ children }) {
                           setNewGroupName("");
                         }
                       }}
-                      className="w-[95%] bg-[#2C3B41] px-3 py-2 mt-2 mb-2 roundedd"
+                      className="w-[95%] bg-[#2C3B41] px-3 py-2 mt-2 mb-2 rounded"
                     />
                   )}
 
@@ -440,7 +449,7 @@ export default function Sidebar({ children }) {
                           onClick={(e) => e.stopPropagation()}
                           onKeyDown={async (e) => {
                             if (e.key === "Enter") {
-                              await fetch(`/api/groups/${group._id}`, {
+                              await fetch(`/api/events/${selectedEvent._id}/groups/${group._id}`, {
                                 method: "PATCH",
                                 headers: {
                                   "Content-Type": "application/json",
@@ -477,7 +486,9 @@ export default function Sidebar({ children }) {
 
                       {/* GROUP MENU */}
                       {openGroupMenu === group._id && (
-                        <div className="absolute right-2 top-9 bg-[#2C3B41] rounded shadow z-50">
+                        <div
+                          ref={groupMenuRef}
+                          className="absolute right-2 top-9 bg-[#2C3B41] rounded shadow z-50">
                           <div
                             className="px-4 py-2 hover:bg-black/30"
                             onClick={(e) => {
@@ -494,9 +505,10 @@ export default function Sidebar({ children }) {
                             className="px-4 py-2 text-red-400 hover:bg-black/30"
                             onClick={async (e) => {
                               e.stopPropagation();
-                              await fetch(`/api/groups/${group._id}`, {
-                                method: "DELETE",
-                              });
+                              await fetch(
+                                `/api/events/${selectedEvent._id}/groups/${group._id}`,
+                                { method: "DELETE" }
+                              );
                               setGroups((prev) =>
                                 prev.filter((g) => g._id !== group._id)
                               );
