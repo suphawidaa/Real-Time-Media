@@ -1,8 +1,9 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import Event from "../../../../lib/Event";
 import { connectMongoDB } from "../../../../models/mongodb";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { requireAuth } from "../../../../lib/requireAuth";
 
 export async function GET() {
   await connectMongoDB();
@@ -11,8 +12,12 @@ export async function GET() {
 }
 
 export async function POST(req) {
+  const session = await requireAuth();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   await connectMongoDB();
-  const session = await getServerSession(authOptions);
+
   const body = await req.json();
 
   const event = await Event.create({
@@ -20,6 +25,7 @@ export async function POST(req) {
     slug: body.slug,
     owner: session.user.id,
   });
+  
 
   return NextResponse.json(event);
 }
