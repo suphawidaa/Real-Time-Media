@@ -1,9 +1,12 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import Group from "../../../../../../lib/Group";
 import Image from "../../../../../../lib/Image";
 import { connectMongoDB } from "../../../../../../models/mongodb";
 import crypto from "crypto";
+import { requireAuth } from "../../../../../../lib/requireAuth";
 
 /* ================= GET groups ================= */
 export async function GET(req, { params }) {
@@ -39,6 +42,10 @@ export async function GET(req, { params }) {
 
 /* ================= CREATE group ================= */
 export async function POST(req, { params }) {
+  const session = await requireAuth();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
   try {
     await connectMongoDB();
 
@@ -52,12 +59,14 @@ export async function POST(req, { params }) {
     }
 
     const body = await req.json();
+    const count = await Group.countDocuments({ event: id });
 
     const group = await Group.create({
       name: body.name,
       slug: body.slug,
       event: id, // ✅ mongoose แปลงให้เองได้
       publicKey: crypto.randomUUID(),
+      order: count,
     });
 
     return NextResponse.json(group, { status: 201 });
