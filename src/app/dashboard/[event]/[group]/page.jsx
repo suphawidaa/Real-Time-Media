@@ -11,6 +11,7 @@ export default function GroupPage() {
   const [showUpload, setShowUpload] = useState(false);
   const [globalDuration, setGlobalDuration] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { group } = useParams();
   const groupId = group;
 
@@ -32,9 +33,9 @@ export default function GroupPage() {
           setImages([]);
         }
       })
-      .catch(() => setImages([]));
+      .catch(() => setImages([]))
+      .finally(() => setLoading(false));
   }, [groupId]);
-
 
   return (
     <div className="w-full p-4">
@@ -99,7 +100,11 @@ export default function GroupPage() {
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
-        {images.length > 0 ? (
+        {loading ? (
+          <div className="col-span-full text-center text-gray-400">
+            Loading...
+          </div>
+        ) : images.length > 0 ? (
           images.map((img) => (
             <ImageCard
               key={img._id}
@@ -110,7 +115,9 @@ export default function GroupPage() {
               }}
               onUpdate={(updated) => {
                 setImages((prev) =>
-                  prev.map((i) => (i._id === updated._id ? updated : i))
+                  prev.map((i) =>
+                    i._id === updated._id ? updated : i
+                  )
                 );
               }}
             />
@@ -142,7 +149,7 @@ export default function GroupPage() {
           if (globalDuration === null && data.length > 0) {
             setGlobalDuration(data[0].duration);
           }
-          
+
         }}
       />
     </div>
