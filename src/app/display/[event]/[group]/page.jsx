@@ -137,7 +137,7 @@ export default function DisplayPage() {
           alt=""
           fill
           unoptimized
-          className="object-contain tv-fade"
+          className="object-cover tv-fade"
         />
       </div>
     </div>
