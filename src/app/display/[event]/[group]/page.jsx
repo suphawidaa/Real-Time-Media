@@ -16,8 +16,6 @@ export default function DisplayPage() {
 
   const [images, setImages] = useState([]);
   const [index, setIndex] = useState(0);
-  const [ready, setReady] = useState(false);
-  const [initialLoad, setInitialLoad] = useState(true); // 🔑 สำคัญ
 
   /* โหลดรูปครั้งแรก */
   useEffect(() => {
@@ -31,105 +29,101 @@ export default function DisplayPage() {
         const first = data[0];
         setImages(data);
         setIndex(0);
-        setReady(true);      
-        setInitialLoad(true); 
       })
       .finally(() => {
-      setFetching(false); 
-    });
+        setFetching(false);
+      });
   }, [groupId]);
 
   /* socket realtime */
   useEffect(() => {
-  if (!groupId) return;
+    if (!groupId) return;
 
-  if (socketRef.current) {
-    socketRef.current.emit("join-group", groupId);
-    return;
-  }
+    if (socketRef.current) {
+      socketRef.current.emit("join-group", groupId);
+      return;
+    }
 
-  const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL, {
-    transports: ["websocket"],
-    reconnection: true,
-    reconnectionAttempts: Infinity,
-    reconnectionDelay: 1000,
-  });
-
-  socketRef.current = socket;
-
-  socket.on("connect", () => {
-    console.log("socket connected:", socket.id);
-    socket.emit("join-group", groupId);
-  });
-
-  socket.on("new-image", (img) => {
-    setImages((prev) => [...prev, img]);
-  });
-
-  socket.on("delete-image", (imageId) => {
-    setImages((prev) => {
-      const next = prev.filter((img) => img._id !== imageId);
-      setIndex((i) => (next.length ? i % next.length : 0));
-      return next;
+    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL, {
+      transports: ["websocket"],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
     });
-  });
 
-  socket.on("update-image", (updated) => {
-    setImages((prev) =>
-      prev.map((img) =>
-        img._id === updated._id ? { ...img, ...updated } : img
-      )
-    );
-    setReady(false);
-  });
+    socketRef.current = socket;
 
-  socket.on("update-duration", (duration) => {
-    setImages((prev) =>
-      prev.map((img) => ({ ...img, duration }))
-    );
-  });
+    socket.on("connect", () => {
+      console.log("socket connected:", socket.id);
+      socket.emit("join-group", groupId);
+    });
 
-}, [groupId]);
+    socket.on("new-image", (img) => {
+      setImages((prev) => [...prev, img]);
+    });
+
+    socket.on("delete-image", (imageId) => {
+      setImages((prev) => {
+        const next = prev.filter((img) => img._id !== imageId);
+        setIndex((i) => (next.length ? i % next.length : 0));
+        return next;
+      });
+    });
+
+    socket.on("update-image", (updated) => {
+      setImages((prev) =>
+        prev.map((img) =>
+          img._id === updated._id ? { ...img, ...updated } : img
+        )
+      );
+    });
+
+    socket.on("update-duration", (duration) => {
+      setImages((prev) =>
+        prev.map((img) => ({ ...img, duration }))
+      );
+    });
+
+  }, [groupId]);
 
   /* slideshow */
   useEffect(() => {
     if (!images.length) return;
     if (images.length === 1) {
-    clearTimeout(timerRef.current);
-    return;
-  }
+      clearTimeout(timerRef.current);
+      return;
+    }
     clearTimeout(timerRef.current);
 
     const duration = (images[index]?.duration || 5) * 1000;
 
     timerRef.current = setTimeout(() => {
-      setReady(false);
       setIndex((i) => (i + 1) % images.length);
     }, duration);
 
     return () => clearTimeout(timerRef.current);
   }, [index, images]);
 
-if (fetching) {
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black">
-      <div className="h-16 w-16 animate-spin rounded-full border-4 border-white border-t-transparent" />
-    </div>
-  );
-}
+  if (fetching) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-black">
+        <div className="h-16 w-16 animate-spin rounded-full border-4 border-white border-t-transparent" />
+      </div>
+    );
+  }
 
-if (!images.length) {
-  return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-black text-white">
-      <div className="text-3xl md:text-4xl font-semibold mb-3">
-        ไม่พบข้อมูลรูปภาพ
+  if (!images.length) {
+    return (
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-black text-white">
+        <div className="text-3xl md:text-4xl font-semibold mb-3">
+          ไม่พบข้อมูลรูปภาพ
+        </div>
+        <div className="text-base md:text-lg text-gray-400">
+          กรุณารอผู้ดูแลระบบอัปโหลดสื่อภาพ
+        </div>
       </div>
-      <div className="text-base md:text-lg text-gray-400">
-        กรุณารอผู้ดูแลระบบอัปโหลดสื่อภาพ
-      </div>
-    </div>
-  );
-}
+    );
+  }
 
   const currentImage = images[index];
 
@@ -142,25 +136,8 @@ if (!images.length) {
           src={`${currentImage.url}?v=${currentImage.updatedAt}`}
           alt=""
           fill
-          priority={index === 0}
           unoptimized
-          className={`
-            object-contain
-            transition-all
-            duration-1500
-            ease-in-out
-            ${
-              ready || initialLoad
-                ? "opacity-100 scale-100"
-                : "opacity-0 scale-[1.04]"
-            }
-          `}
-          onLoad={() => {
-            requestAnimationFrame(() => {
-              setReady(true);
-              setInitialLoad(false);
-            });
-          }}
+          className="object-contain tv-fade"
         />
       </div>
     </div>
