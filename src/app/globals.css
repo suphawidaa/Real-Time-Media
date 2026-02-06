@@ -55,5 +55,9 @@ body {
 
 .tv-fade {
   animation: tvFadeZoom 1.5s ease-in-out forwards;
-  will-change: opacity, transform;
+  will-change: opacity;
+}
+
+.tv-image {
+  background: black;
 }
