@@ -129,7 +129,7 @@ export default function DisplayPage() {
 
   return (
     <div className="fixed inset-0 bg-black">
-      <div className="relative w-full h-full">
+      <div className="relative w-full h-full bg-black flex items-center justify-center">
 
         <Image
           key={`${currentImage._id}-${currentImage.updatedAt}`}
@@ -137,6 +137,7 @@ export default function DisplayPage() {
           alt=""
           fill
           unoptimized
+          placeholder="empty"
           className="object-cover tv-fade tv-image"
         />
       </div>
