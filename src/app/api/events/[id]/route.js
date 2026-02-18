@@ -35,12 +35,12 @@ export async function PATCH(req, context) {
 /* DELETE EVENT */
 export async function DELETE(req, context) {
   const session = await requireAuth();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   await connectMongoDB();
 
-  const { id } = await context.params; // ✅ ต้อง await
+  const { id } = await context.params;
 
   if (!id) {
     return NextResponse.json(
@@ -49,7 +49,12 @@ export async function DELETE(req, context) {
     );
   }
 
-  await Event.findByIdAndUpdate(id, { isActive: false });
+  // 🗑️ เปลี่ยนจากอัปเดต isActive เป็นลบทิ้งจริงๆ
+  const deletedEvent = await Event.findByIdAndDelete(id);
+
+  if (!deletedEvent) {
+    return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  }
 
   return NextResponse.json({ success: true });
 }
