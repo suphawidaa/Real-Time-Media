@@ -44,6 +44,9 @@ export default function ImageCard({ img, onDelete, onUpdate }) {
           </div>
         )}
 
+        <div className="absolute top-2 right-2 z-10 bg-black/60 backdrop-blur-md text-white px-2 py-1 rounded-md text-[12px] font-bold flex items-center gap-1 shadow-lg border border-white/20">
+          <span className="text-[10px] opacity-80">SEC:</span> {img.duration}
+        </div>
         <Image
           src={editPreview || img.url}
           alt=""
