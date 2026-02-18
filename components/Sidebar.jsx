@@ -78,103 +78,68 @@ export default function Sidebar({ children }) {
     }
   };
 
-  /* SYNC EVENT FROM URL */
+  /* SYNC EVENT & GROUP FROM URL */
   useEffect(() => {
     if (!events.length) return;
-
     const parts = pathname.split("/");
     const eventSlug = parts[2];
+    const groupSlug = parts[3];
 
-    if (!eventSlug) return;
-
-    const foundEvent = events.find(
-      (ev) => ev.slug === eventSlug
-    );
-
+    const foundEvent = events.find((ev) => ev.slug === eventSlug);
     if (foundEvent) {
       setSelectedEvent(foundEvent);
       loadGroups(foundEvent._id);
-      setOpenGroups(true);
+      
+      if (groupSlug) {
+      }
+    } else if (isDashboard) {
+      setSelectedEvent(null);
+      setGroups([]);
     }
-  }, [events, pathname]);
+  }, [events, pathname, isDashboard]);
 
-  /* SYNC GROUP FROM URL */
   useEffect(() => {
     if (!groups.length) return;
-
     const parts = pathname.split("/");
     const groupSlug = parts[3];
-
-    if (!groupSlug) return;
-
-    const foundGroup = groups.find(
-      (g) => g.slug === groupSlug
-    );
-
-    if (foundGroup) {
-      setSelectedGroup(foundGroup);
-    }
+    const foundGroup = groups.find((g) => g.slug === groupSlug);
+    if (foundGroup) setSelectedGroup(foundGroup);
   }, [groups, pathname]);
 
-  /* CLICK OUTSIDE ADD EVENT / GROUP */
+  /* CLICK OUTSIDE HANDLERS */
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (
-        addingEvent &&
-        addEventRef.current &&
-        !addEventRef.current.contains(e.target)
-      ) {
+      if (addingEvent && addEventRef.current && !addEventRef.current.contains(e.target)) {
         setAddingEvent(false);
         setNewEventName("");
       }
-
-      if (
-        addingGroup &&
-        addGroupRef.current &&
-        !addGroupRef.current.contains(e.target)
-      ) {
+      if (addingGroup && addGroupRef.current && !addGroupRef.current.contains(e.target)) {
         setAddingGroup(false);
         setNewGroupName("");
       }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () =>
-      document.removeEventListener("mousedown", handleClickOutside);
-  }, [addingEvent, addingGroup]);
-
-  /* CLICK OUTSIDE */
-  useEffect(() => {
-    const handler = (e) => {
-      // EVENT
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setOpenMenu(null);
         setRenaming(null);
       }
-
-      // GROUP
       if (groupMenuRef.current && !groupMenuRef.current.contains(e.target)) {
         setOpenGroupMenu(null);
         setRenamingGroup(null);
       }
     };
-
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [addingEvent, addingGroup]);
 
   if (status === "loading") return null;
 
-  const menuBase =
-    "group relative flex items-center gap-3 px-4 py-2 cursor-pointer rounded-md transition";
+  const menuBase = "group relative flex items-center gap-3 px-4 py-2 cursor-pointer rounded-md transition";
   const activeStyle = "bg-[#2C3B41] text-white";
   const hoverStyle = "hover:bg-[#2C3B41]";
-  const indicator =
-    "absolute left-0 top-0 h-full w-1 bg-blue-400 rounded-r";
+  const indicator = "absolute left-0 top-0 h-full w-1 bg-blue-400 rounded-r";
 
   return (
     <div className="grid grid-cols-[18rem_1fr] min-h-screen">
-      <aside className="bg-[#1E282C] text-gray-300 flex flex-col justify-between">
+      <aside className="bg-[#1E282C] text-gray-300 flex flex-col justify-between overflow-y-auto">
         <div>
           <h1 className="text-center text-white font-bold text-xl py-5">
             RT <span className="font-light">Admin</span>
@@ -186,366 +151,248 @@ export default function Sidebar({ children }) {
               setSelectedEvent(null);
               setGroups([]);
             }}
-            className={`${menuBase} ${isDashboard ? activeStyle : hoverStyle
-              }`}
+            className={`${menuBase} ${isDashboard ? activeStyle : hoverStyle}`}
           >
-            <span
-              className={`${indicator} ${isDashboard ? "opacity-100" : "opacity-0"
-                }`}
-            />
+            <span className={`${indicator} ${isDashboard ? "opacity-100" : "opacity-0"}`} />
             <FiGrid /> Dashboard
           </div>
 
-          {/* EVENTS */}
+          {/* EVENTS SECTION */}
           <div className="mt-4">
             <div
               onClick={() => setOpenEvents(!openEvents)}
-              className={`${menuBase} ${hoverStyle}`}
+              className={`${menuBase} ${hoverStyle} justify-between`}
             >
-              <FiCalendar />
-              <span className="flex-1">Events</span>
-
+              <div className="flex items-center gap-3">
+                <FiCalendar />
+                <span>Events</span>
+              </div>
               <div className="flex gap-2">
-                {openEvents ? <FiChevronUp /> : <FiChevronDown />}
                 <FiPlus
+                  className="hover:text-white"
                   onClick={(e) => {
                     e.stopPropagation();
                     setAddingEvent(true);
+                    setOpenEvents(true);
                   }}
                 />
+                {openEvents ? <FiChevronUp /> : <FiChevronDown />}
               </div>
             </div>
 
             {openEvents && (
-              <div className="ml-4 mt-1 space-y-1">
+              <div className="mt-1">
                 {addingEvent && (
-                  <input
-                    ref={addEventRef}
-                    autoFocus
-                    value={newEventName}
-                    onChange={(e) => setNewEventName(e.target.value)}
-                    onKeyDown={async (e) => {
-                      if (e.key === "Enter" && newEventName.trim()) {
-                        const res = await fetch("/api/events", {
-                          method: "POST",
-                          headers: {
-                            "Content-Type": "application/json",
-                          },
-                          body: JSON.stringify({
-                            name: newEventName,
-                            slug: slugify(newEventName),
-                          }),
-                        });
-
-                        if (!res.ok) return;
-
-                        const data = await res.json();
-                        setEvents((prev) => [...prev, data]);
-                        setAddingEvent(false);
-                        setNewEventName("");
-                      }
-
-                      if (e.key === "Escape") {
-                        setAddingEvent(false);
-                        setNewEventName("");
-                      }
-                    }}
-                    className="w-[95%] bg-[#2C3B41] px-3 py-2 mt-2 mb-2 rounded"
-                  />
+                  <div className="px-4 mb-2">
+                    <input
+                      ref={addEventRef}
+                      autoFocus
+                      placeholder="Event name..."
+                      value={newEventName}
+                      onChange={(e) => setNewEventName(e.target.value)}
+                      onKeyDown={async (e) => {
+                        if (e.key === "Enter" && newEventName.trim()) {
+                          const res = await fetch("/api/events", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ name: newEventName, slug: slugify(newEventName) }),
+                          });
+                          if (res.ok) {
+                            const data = await res.json();
+                            setEvents((prev) => [...prev, data]);
+                            setAddingEvent(false);
+                            setNewEventName("");
+                          }
+                        }
+                      }}
+                      className="w-full bg-[#2C3B41] px-3 py-2 rounded text-sm outline-none border border-blue-500"
+                    />
+                  </div>
                 )}
 
-
-                {/* EVENT LIST */}
-                {events.map((event) => (
-                  <div
-                    key={event._id}
-                    className={`${menuBase} ${selectedEvent?._id === event._id
-                      ? activeStyle
-                      : hoverStyle
-                      }`}
-                    onClick={() => {
-                      setSelectedEvent(event);
-                      setGroups([]);
-                      loadGroups(event._id);
-                      setOpenGroups(true);
-                      setSelectedGroup(null);
-                    }}
-                  >
-                    <span
-                      className={`${indicator} ${selectedEvent?._id === event._id
-                        ? "opacity-100"
-                        : "opacity-0"
-                        }`}
-                    />
-
-                    {renaming === event._id ? (
-                      <input
-                        autoFocus
-                        value={renameText}
-                        onChange={(e) => setRenameText(e.target.value)}
-                        onKeyDown={async (e) => {
-                          if (e.key === "Enter") {
-                            await fetch(`/api/events/${event._id}`, {
-                              method: "PATCH",
-                              headers: {
-                                "Content-Type": "application/json",
-                              },
-                              body: JSON.stringify({
-                                name: renameText,
-                                slug: slugify(renameText),
-                              }),
-                            });
-
-                            setEvents((prev) =>
-                              prev.map((ev) =>
-                                ev._id === event._id
-                                  ? { ...ev, name: renameText }
-                                  : ev
-                              )
-                            );
-                            setRenaming(null);
-                          }
-                        }}
-                        className="bg-transparent border-b outline-none flex-1"
-                      />
-                    ) : (
-                      <span className="flex-1">{event.name}</span>
-                    )}
-
-                    <FiMoreVertical
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenMenu(event._id);
-                      }}
-                    />
-
-                    {openMenu === event._id && (
+                {events.map((event) => {
+                  const isEventActive = selectedEvent?._id === event._id;
+                  return (
+                    <div key={event._id} className="flex flex-col">
+                      {/* EVENT ITEM */}
                       <div
-                        ref={menuRef}
-                        className="absolute right-2 top-10 bg-[#2C3B41] rounded shadow z-50"
-                      >
-                        <div
-                          className="px-4 py-2 hover:bg-black/30"
-                          onClick={() => {
-                            setRenaming(event._id);
-                            setRenameText(event.name);
-                            setOpenMenu(null);
-                          }}
-                        >
-                          Rename
-                        </div>
-                        <div
-                          className="px-4 py-2 text-red-400 hover:bg-black/30"
-                          onClick={async () => {
-                            await fetch(
-                              `/api/events/${event._id}`,
-                              { method: "DELETE" }
-                            );
-                            setEvents((prev) =>
-                              prev.filter(
-                                (ev) => ev._id !== event._id
-                              )
-                            );
-                            setSelectedEvent(null);
-                            setGroups([]);
-                          }}
-                        >
-                          Delete
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* GROUPS */}
-          {selectedEvent && (
-            <div className="mt-4">
-              <div
-                onClick={() => setOpenGroups(!openGroups)}
-                className={`${menuBase} ${hoverStyle}`}
-              >
-                <FiFolder />
-                <span className="flex-1">Groups</span>
-                <FiPlus
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setAddingGroup(true);
-                  }}
-                />
-              </div>
-
-              {openGroups && (
-                <div className="ml-4 mt-1 space-y-1">
-                  {addingGroup && (
-                    <input
-                      ref={addGroupRef}
-                      autoFocus
-                      value={newGroupName}
-                      onChange={(e) => setNewGroupName(e.target.value)}
-                      onKeyDown={async (e) => {
-                        if (e.key === "Enter" && newGroupName.trim()) {
-                          const res = await fetch(
-                            `/api/events/${selectedEvent._id}/groups`,
-                            {
-                              method: "POST",
-                              headers: {
-                                "Content-Type": "application/json",
-                              },
-                              body: JSON.stringify({
-                                name: newGroupName,
-                                slug: slugify(newGroupName),
-                              }),
-                            }
-                          );
-
-                          if (!res.ok) return;
-
-                          const data = await res.json();
-                          setGroups((prev) => [...prev, data]);
-                          setAddingGroup(false);
-                          setNewGroupName("");
-                        }
-
-                        if (e.key === "Escape") {
-                          setAddingGroup(false);
-                          setNewGroupName("");
-                        }
-                      }}
-                      className="w-[95%] bg-[#2C3B41] px-3 py-2 mt-2 mb-2 rounded"
-                    />
-                  )}
-
-                  {groups.map((group) => (
-                    <div
-                      key={group._id}
-                      className={`${menuBase} ${selectedGroup?._id === group._id
-                        ? activeStyle
-                        : hoverStyle
-                        }`}
-                      onClick={() => {
-                        setSelectedGroup(group); // ⭐ เพิ่ม
-                        router.push(
-                          `/dashboard/${selectedEvent.slug}/${group.slug}`
-                        );
-                      }}
-                    >
-                      {/* ACTIVE INDICATOR */}
-                      <span
-                        className={`${indicator} ${selectedGroup?._id === group._id
-                          ? "opacity-100"
-                          : "opacity-0"
-                          }`}
-                      />
-
-                      {/* RENAME INPUT */}
-                      {renamingGroup === group._id ? (
-                        <input
-                          autoFocus
-                          value={renameGroupText}
-                          onChange={(e) => setRenameGroupText(e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          onKeyDown={async (e) => {
-                            if (e.key === "Enter") {
-                              await fetch(`/api/events/${selectedEvent._id}/groups/${group._id}`, {
-                                method: "PATCH",
-                                headers: {
-                                  "Content-Type": "application/json",
-                                },
-                                body: JSON.stringify({
-                                  name: renameGroupText,
-                                  slug: slugify(renameGroupText),
-                                }),
-                              });
-
-                              setGroups((prev) =>
-                                prev.map((g) =>
-                                  g._id === group._id
-                                    ? { ...g, name: renameGroupText }
-                                    : g
-                                )
-                              );
-                              setRenamingGroup(null);
-                            }
-                          }}
-                          className="bg-transparent border-b outline-none flex-1"
-                        />
-                      ) : (
-                        <span className="flex-1">{group.name}</span>
-                      )}
-
-                      {/* MORE ICON */}
-                      <FiMoreVertical
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenGroupMenu(group._id);
+                        className={`${menuBase} mx-2 ${isEventActive ? activeStyle : hoverStyle}`}
+                        onClick={() => {
+                          setSelectedEvent(event);
+                          loadGroups(event._id);
+                          setOpenGroups(true);
                         }}
-                      />
-
-                      {/* GROUP MENU */}
-                      {openGroupMenu === group._id && (
-                        <div
-                          ref={groupMenuRef}
-                          className="absolute right-2 top-9 bg-[#2C3B41] rounded shadow z-50">
-                          <div
-                            className="px-4 py-2 hover:bg-black/30"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setRenamingGroup(group._id);
-                              setRenameGroupText(group.name);
-                              setOpenGroupMenu(null);
+                      >
+                        <span className={`${indicator} ${isEventActive ? "opacity-100" : "opacity-0"}`} />
+                        
+                        {renaming === event._id ? (
+                          <input
+                            autoFocus
+                            value={renameText}
+                            onChange={(e) => setRenameText(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={async (e) => {
+                              if (e.key === "Enter") {
+                                await fetch(`/api/events/${event._id}`, {
+                                  method: "PATCH",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ name: renameText, slug: slugify(renameText) }),
+                                });
+                                setEvents(prev => prev.map(ev => ev._id === event._id ? {...ev, name: renameText} : ev));
+                                setRenaming(null);
+                              }
                             }}
-                          >
-                            Rename
-                          </div>
+                            className="bg-transparent border-b border-blue-400 outline-none flex-1"
+                          />
+                        ) : (
+                          <span className="flex-1 truncate">{event.name}</span>
+                        )}
 
-                          <div
-                            className="px-4 py-2 text-red-400 hover:bg-black/30"
-                            onClick={async (e) => {
+                        <FiMoreVertical
+                          className="opacity-0 group-hover:opacity-100 transition"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenu(event._id);
+                          }}
+                        />
+
+                        {openMenu === event._id && (
+                          <div ref={menuRef} className="absolute right-2 top-10 bg-[#2C3B41] rounded shadow-xl z-50 py-1 text-sm border border-gray-600">
+                            <div className="px-4 py-2 hover:bg-black/30" onClick={(e) => { e.stopPropagation(); setRenaming(event._id); setRenameText(event.name); setOpenMenu(null); }}>Rename</div>
+                            <div className="px-4 py-2 text-red-400 hover:bg-black/30" onClick={async (e) => {
                               e.stopPropagation();
-                              await fetch(
-                                `/api/events/${selectedEvent._id}/groups/${group._id}`,
-                                { method: "DELETE" }
-                              );
-                              setGroups((prev) =>
-                                prev.filter((g) => g._id !== group._id)
-                              );
-                              setOpenGroupMenu(null);
-                            }}
-                          >
-                            Delete
+                              await fetch(`/api/events/${event._id}`, { method: "DELETE" });
+                              setEvents(prev => prev.filter(ev => ev._id !== event._id));
+                              if (isEventActive) { setSelectedEvent(null); setGroups([]); router.push("/dashboard"); }
+                            }}>Delete</div>
                           </div>
+                        )}
+                      </div>
+
+                      {/* NESTED GROUPS LIST */}
+                      {isEventActive && (
+                        <div className="ml-9 mt-1 mb-2 space-y-1 border-l border-gray-700">
+                          {groups.map((group) => {
+                            const isGroupActive = selectedGroup?._id === group._id;
+                            return (
+                              <div
+                                key={group._id}
+                                className={`group relative flex items-center gap-2 px-3 py-1.5 cursor-pointer rounded-r-md transition text-sm ${
+                                  isGroupActive ? "text-blue-400 bg-blue-400/5" : "hover:bg-[#2C3B41] text-gray-400"
+                                }`}
+                                onClick={() => {
+                                  setSelectedGroup(group);
+                                  router.push(`/dashboard/${event.slug}/${group.slug}`);
+                                }}
+                              >
+                                <FiFolder size={14} />
+                                {renamingGroup === group._id ? (
+                                  <input
+                                    autoFocus
+                                    value={renameGroupText}
+                                    onChange={(e) => setRenameGroupText(e.target.value)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onKeyDown={async (e) => {
+                                      if (e.key === "Enter") {
+                                        await fetch(`/api/events/${event._id}/groups/${group._id}`, {
+                                          method: "PATCH",
+                                          headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({ name: renameGroupText, slug: slugify(renameGroupText) }),
+                                        });
+                                        setGroups(prev => prev.map(g => g._id === group._id ? {...g, name: renameGroupText} : g));
+                                        setRenamingGroup(null);
+                                      }
+                                    }}
+                                    className="bg-transparent border-b border-blue-400 outline-none flex-1 text-white"
+                                  />
+                                ) : (
+                                  <span className="flex-1 truncate font-medium">{group.name}</span>
+                                )}
+                                
+                                <FiMoreVertical
+                                  className="opacity-0 group-hover:opacity-100"
+                                  onClick={(e) => { e.stopPropagation(); setOpenGroupMenu(group._id); }}
+                                />
+
+                                {openGroupMenu === group._id && (
+                                  <div ref={groupMenuRef} className="absolute right-0 top-8 bg-[#2C3B41] rounded shadow-xl z-50 py-1 border border-gray-600">
+                                    <div className="px-4 py-2 hover:bg-black/30 text-white" onClick={(e) => { e.stopPropagation(); setRenamingGroup(group._id); setRenameGroupText(group.name); setOpenGroupMenu(null); }}>Rename</div>
+                                    <div className="px-4 py-2 text-red-400 hover:bg-black/30" onClick={async (e) => {
+                                      e.stopPropagation();
+                                      await fetch(`/api/events/${event._id}/groups/${group._id}`, { method: "DELETE" });
+                                      setGroups(prev => prev.filter(g => g._id !== group._id));
+                                      setOpenGroupMenu(null);
+                                    }}>Delete</div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+
+                          {/* ADD GROUP BUTTON */}
+                          {addingGroup ? (
+                            <div className="px-2">
+                              <input
+                                ref={addGroupRef}
+                                autoFocus
+                                placeholder="Group name..."
+                                value={newGroupName}
+                                onChange={(e) => setNewGroupName(e.target.value)}
+                                onKeyDown={async (e) => {
+                                  if (e.key === "Enter" && newGroupName.trim()) {
+                                    const res = await fetch(`/api/events/${event._id}/groups`, {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ name: newGroupName, slug: slugify(newGroupName) }),
+                                    });
+                                    if (res.ok) {
+                                      const data = await res.json();
+                                      setGroups(prev => [...prev, data]);
+                                      setAddingGroup(false);
+                                      setNewGroupName("");
+                                    }
+                                  }
+                                }}
+                                className="w-full bg-[#2C3B41] px-2 py-1 rounded text-[15px] outline-none border border-blue-500 text-white"
+                              />
+                            </div>
+                          ) : (
+                            <div 
+                              onClick={() => setAddingGroup(true)}
+                              className="flex items-center gap-2 px-3 py-1 text-[15px] text-gray-500 hover:text-blue-400 cursor-pointer transition"
+                            >
+                              <FiPlus size={14} /> Add Group
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         <button
           onClick={() => signOut({ callbackUrl: "/" })}
-          className="m-4 flex items-center justify-center gap-2 bg-[#005BA9] text-white rounded-lg py-2"
+          className="m-4 flex items-center justify-center gap-2 bg-[#005BA9] hover:bg-[#004a8a] text-white rounded-lg py-2 transition"
         >
           <FiLogOut /> Log out
         </button>
       </aside>
 
-      <main className="flex flex-col">
-        <header className="h-16 bg-[#005BA9] flex justify-end px-6 items-center">
+      <main className="flex flex-col h-screen overflow-hidden">
+        <header className="h-16 bg-[#005BA9] flex justify-end px-6 items-center flex-shrink-0 shadow-md">
           <div className="flex items-center gap-3 text-white">
-            <div className="w-9 h-9 rounded-full bg-gray-400 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-full bg-gray-400 flex items-center justify-center border-2 border-white/20">
               <FaUserAlt />
             </div>
-            <span>{session?.user?.username}</span>
+            <span className="font-medium">{session?.user?.username || "Admin"}</span>
           </div>
         </header>
 
-        <section className="p-6 flex-1 overflow-auto">
+        <section className="p-6 flex-1 overflow-auto bg-gray-50 text-gray-800">
           {children}
         </section>
       </main>
