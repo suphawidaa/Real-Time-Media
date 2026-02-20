@@ -8,20 +8,7 @@ export default function UploadPopup({ isOpen, onClose, onUpload }) {
 
   if (!isOpen) return null;
 
-  const handleFilesChange = async (e) => {
-    const resized = await Promise.all(
-      Array.from(e.target.files).map(async (file) => {
-        const resizedFile = await resizeImage(file);
-        return {
-          file: resizedFile,
-          preview: URL.createObjectURL(resizedFile),
-          id: Date.now() + Math.random(),
-        };
-      })
-    );
-
-    setFiles((prev) => [...prev, ...resized]);
-  };
+  /* Resize เฉพาะ Image เท่านั้น */
   const resizeImage = (file, maxSize = 1600, quality = 0.8) =>
     new Promise((resolve) => {
       const img = new window.Image();
@@ -55,13 +42,50 @@ export default function UploadPopup({ isOpen, onClose, onUpload }) {
       };
     });
 
+  /* Handle File (input + drop ใช้ร่วมกัน) */
+  const processFiles = async (fileList) => {
+    const processed = await Promise.all(
+      Array.from(fileList).map(async (file) => {
+        const isImage = file.type.startsWith("image/");
+        const isVideo = file.type.startsWith("video/");
+
+        if (!isImage && !isVideo) return null;
+
+        let finalFile = file;
+
+        // resize เฉพาะ image
+        if (isImage) {
+          finalFile = await resizeImage(file);
+        }
+
+        return {
+          file: finalFile,
+          preview: URL.createObjectURL(finalFile),
+          type: isImage ? "image" : "video",
+          id: Date.now() + Math.random(),
+        };
+      })
+    );
+
+    setFiles((prev) => [...prev, ...processed.filter(Boolean)]);
+  };
+
+  const handleFilesChange = async (e) => {
+    await processFiles(e.target.files);
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    await processFiles(e.dataTransfer.files);
+  };
+
   const handleRemoveFile = (id) => {
-  setFiles((prev) => {
-    const file = prev.find((f) => f.id === id);
-    if (file) URL.revokeObjectURL(file.preview);
-    return prev.filter((f) => f.id !== id);
-  });
-};
+    setFiles((prev) => {
+      const file = prev.find((f) => f.id === id);
+      if (file) URL.revokeObjectURL(file.preview);
+      return prev.filter((f) => f.id !== id);
+    });
+  };
 
   const handleUpload = async () => {
     if (loading) return;
@@ -76,23 +100,6 @@ export default function UploadPopup({ isOpen, onClose, onUpload }) {
     }
   };
 
-  const handleDrop = async (e) => {
-    e.preventDefault();
-
-    const resized = await Promise.all(
-      Array.from(e.dataTransfer.files).map(async (file) => {
-        const resizedFile = await resizeImage(file);
-        return {
-          file: resizedFile,
-          preview: URL.createObjectURL(resizedFile),
-          id: Date.now() + Math.random(),
-        };
-      })
-    );
-
-    setFiles((prev) => [...prev, ...resized]);
-  };
-
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
       <div className="bg-white rounded-xl p-6 w-11/12 max-w-3xl relative">
@@ -104,19 +111,25 @@ export default function UploadPopup({ isOpen, onClose, onUpload }) {
           <FiX />
         </button>
 
-        <h2 className="text-lg font-bold mb-4 text-center">Upload Images</h2>
+        <h2 className="text-lg font-bold mb-4 text-center">
+          Upload Images / Videos
+        </h2>
 
         <div
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
           className="border-2 border-gray-400 border-dashed rounded p-8 text-center mb-4"
         >
-          <p className="font-medium">Drag & drop images here</p>
+          <p className="font-medium">
+            Drag & drop images or videos here
+          </p>
+
           <label className="inline-block mt-4 px-4 py-2 bg-blue-500 text-white rounded cursor-pointer">
             Choose files
             <input
               type="file"
               multiple
+              accept="image/*,video/*"
               className="hidden"
               onChange={handleFilesChange}
             />
@@ -128,11 +141,22 @@ export default function UploadPopup({ isOpen, onClose, onUpload }) {
             {files.map((f) => (
               <div key={f.id} className="relative">
                 <div className="relative rounded overflow-hidden bg-black">
-                  <img
-                    src={f.preview}
-                    alt=""
-                    className="w-full h-auto object-contain"
-                  />
+
+                  {/* แสดงตามประเภทไฟล์ */}
+                  {f.type === "image" ? (
+                    <img
+                      src={f.preview}
+                      alt=""
+                      className="w-full h-auto object-contain"
+                    />
+                  ) : (
+                    <video
+                      src={f.preview}
+                      controls
+                      className="w-full h-auto object-contain"
+                    />
+                  )}
+
                 </div>
 
                 <button
@@ -156,7 +180,7 @@ export default function UploadPopup({ isOpen, onClose, onUpload }) {
             disabled:bg-blue-400
             disabled:cursor-not-allowed"
           >
-            {loading ? "Uploading images..." : "Upload Images"}
+            {loading ? "Uploading..." : "Upload"}
           </button>
         </div>
       </div>
