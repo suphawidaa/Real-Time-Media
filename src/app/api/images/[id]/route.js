@@ -36,7 +36,10 @@ export async function PATCH(req, { params }) {
   if (file) {
     // 🔥 ลบรูปเก่าจาก Cloudinary
     if (image.cloudinaryId) {
-      await cloudinary.uploader.destroy(image.cloudinaryId);
+      await cloudinary.uploader.destroy(image.cloudinaryId, {
+  resource_type: image.type === "video" ? "video" : "image",
+});
+
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
