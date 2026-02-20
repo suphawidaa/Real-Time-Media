@@ -10,7 +10,7 @@ const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL;
 export default function DisplayPage() {
   const { group: groupId } = useParams();
   const [fetching, setFetching] = useState(true);
-
+  const videoRef = useRef(null);
   const socketRef = useRef(null);
   const timerRef = useRef(null);
 
@@ -62,6 +62,10 @@ export default function DisplayPage() {
       setImages((prev) => [...prev, img]);
     });
 
+    socket.on("media-added", (data) => {
+  setImages((prev) => [...prev, ...data.images]);
+});
+
     socket.on("delete-image", (imageId) => {
       setImages((prev) => {
         const next = prev.filter((img) => img._id !== imageId);
@@ -89,17 +93,24 @@ export default function DisplayPage() {
   /* slideshow */
   useEffect(() => {
     if (!images.length) return;
-    if (images.length === 1) {
-      clearTimeout(timerRef.current);
-      return;
-    }
+    if (images.length === 1) return;
+
     clearTimeout(timerRef.current);
 
-    const duration = (images[index]?.duration || 5) * 1000;
+    const current = images[index];
 
-    timerRef.current = setTimeout(() => {
-      setIndex((i) => (i + 1) % images.length);
-    }, duration);
+    const isVideo =
+      current?.type === "video" ||
+      current?.url?.includes("/video/") ||
+      current?.url?.endsWith(".mp4");
+
+    if (!isVideo) {
+      const duration = (current?.duration || 5) * 1000;
+
+      timerRef.current = setTimeout(() => {
+        setIndex((i) => (i + 1) % images.length);
+      }, duration);
+    }
 
     return () => clearTimeout(timerRef.current);
   }, [index, images]);
@@ -127,19 +138,41 @@ export default function DisplayPage() {
 
   const currentImage = images[index];
 
+  const isVideo =
+    currentImage?.type === "video" ||
+    currentImage?.url?.includes("/video/") ||
+    currentImage?.url?.endsWith(".mp4");
+
+
   return (
     <div className="fixed inset-0 bg-black">
       <div className="relative w-full h-full bg-black flex items-center justify-center">
 
-        <Image
-          key={`${currentImage._id}-${currentImage.updatedAt}`}
-          src={`${currentImage.url}?v=${currentImage.updatedAt}`}
-          alt=""
-          fill
-          unoptimized
-          placeholder="empty"
-          className="object-cover tv-fade tv-image"
-        />
+        {isVideo ? (
+          <video
+            key={`${currentImage._id}-${currentImage.updatedAt}`}
+            ref={videoRef}
+            src={`${currentImage.url}?v=${currentImage.updatedAt}`}
+            autoPlay
+            muted
+            playsInline
+            className="w-full h-full object-cover tv-fade tv-image"
+            onEnded={() => {
+              setIndex((i) => (i + 1) % images.length);
+            }}
+          />
+        ) : (
+          <Image
+            key={`${currentImage._id}-${currentImage.updatedAt}`}
+            src={`${currentImage.url}?v=${currentImage.updatedAt}`}
+            alt=""
+            fill
+            unoptimized
+            placeholder="empty"
+            className="object-cover tv-fade tv-image"
+          />
+        )}
+
       </div>
     </div>
   );
