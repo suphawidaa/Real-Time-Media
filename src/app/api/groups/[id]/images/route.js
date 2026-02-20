@@ -32,10 +32,12 @@ export async function POST(req, { params }) {
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
   await connectMongoDB();
 
   const { id: slug } = await params;
   const group = await Group.findOne({ slug });
+
   if (!group) {
     return NextResponse.json({ error: "Group not found" }, { status: 404 });
   }
@@ -47,16 +49,22 @@ export async function POST(req, { params }) {
   const uploadedImages = [];
 
   let orderIndex = await Image.countDocuments({
-  group: group._id,
-  isActive: true,
-});
+    group: group._id,
+    isActive: true,
+  });
 
   for (const file of files) {
+    if (!file) continue;
+
     const buffer = Buffer.from(await file.arrayBuffer());
+
+    const isVideo = file.type.startsWith("video/");
+    const resourceType = isVideo ? "video" : "image";
 
     const result = await new Promise((resolve, reject) => {
       cloudinary.uploader.upload_stream(
         {
+          resource_type: "auto", // 🔥 สำคัญมาก
           transformation: [
             { width: 1920, crop: "limit", quality: "auto" },
           ],
@@ -65,32 +73,35 @@ export async function POST(req, { params }) {
       ).end(buffer);
     });
 
+
     const savedImage = await Image.create({
       group: group._id,
       cloudinaryId: result.public_id,
       url: result.secure_url,
       duration,
       order: orderIndex,
+      type: result.resource_type === "video" ? "video" : "image",
     });
+    console.log("Cloudinary type:", result.resource_type);
+
+
     orderIndex++;
-    uploadedImages.push(savedImage);
-
-    // 🔥 EMIT REALTIME
-    await fetch(`${SOCKET_URL}/emit`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    type: "new-image",
-    groupId: slug,
-    image: {
-      _id: savedImage._id,
-      url: savedImage.url,
-      duration: savedImage.duration,
-    },
-  }),
-});
-
+    uploadedImages.push(JSON.parse(JSON.stringify(savedImage)));
   }
+
+  // 🔥 ยิง realtime ทีเดียวหลัง loop (เสถียรกว่า)
+  if (SOCKET_URL) {
+    await fetch(`${SOCKET_URL}/emit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "media-added",
+        groupId: slug,
+        images: uploadedImages,
+      }),
+    });
+  }
+
   return NextResponse.json(uploadedImages, { status: 201 });
 }
 
@@ -121,7 +132,7 @@ export async function PATCH(req, { params }) {
 
   // ✅ 1) UPDATE DB ก่อน
   await Image.updateMany(
-    { group: group._id },
+    { group: group._id, type: "image" },
     { $set: { duration: Number(duration) } }
   );
 
